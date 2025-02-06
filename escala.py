@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime, timedelta
-import io  # Para salvar o Excel na memória
+import io
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -10,10 +10,11 @@ from email.mime.text import MIMEText
 FILE_NAME = "escala_lab.xlsx"
 SALAS = ["Geral 1", "Geral 2", "Geral 3", "Geral 4", "Citometria - Bancada", "Geologia 2", "Geologia Micrótomo", "Cultivo A1", "Cultivo A2", "Cultivo A3/Fluxo", "Cultivo Subsolo 2"]
 
-# Gerar as próximas 7 datas
-def gerar_datas_proximos_7_dias():
-    hoje = datetime.now()
-    return [(hoje + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+# Gerar um período fixo de 5 dias
+def gerar_datas_periodo_fixo():
+    inicio = datetime(2025, 2, 10)  # Data de início do período
+    fim = datetime(2025, 2, 14)     # Data de fim do período
+    return [(inicio + timedelta(days=i)).strftime('%Y-%m-%d') for i in range((fim - inicio).days + 1)]
 
 # Função para carregar ou criar o arquivo Excel
 def load_data():
@@ -28,10 +29,10 @@ def save_data(df):
 
 # Função para enviar e-mail de confirmação
 def enviar_email(nome, email, reservas):
-    remetente = "paulo.henriquee30@gmail.com"  # Substitua pelo seu e-mail
-    senha = "spkq lnax gulm vlsy"  # Substitua pela senha de app do Gmail
+    remetente = "paulo.henriquee30@gmail.com"
+    senha = "spkq lnax gulm vlsy"
     destinatario = email
-    
+
     mensagem = MIMEMultipart()
     mensagem['From'] = remetente
     mensagem['To'] = destinatario
@@ -43,7 +44,7 @@ def enviar_email(nome, email, reservas):
     corpo += "\nObrigado!"
 
     mensagem.attach(MIMEText(corpo, 'plain'))
-    
+
     try:
         servidor = smtplib.SMTP('smtp.gmail.com', 587)
         servidor.starttls()
@@ -59,7 +60,7 @@ def verificar_conflito(data_periodo, sala, escala):
     if data_periodo in escala["Data e Período"].values:
         valor_existente = escala.loc[escala["Data e Período"] == data_periodo, sala].values[0]
         if pd.notna(valor_existente) and valor_existente.strip() != "":
-            return False  # Conflito detectado
+            return False
     return True
 
 # Função principal para preenchimento da escala
@@ -83,7 +84,7 @@ st.title("Gerenciamento de Escala de Laboratório")
 # Inputs do usuário
 nome = st.text_input("Nome:")
 email = st.text_input("E-mail:")
-dias_selecionados = st.multiselect("Selecione os dias:", gerar_datas_proximos_7_dias())
+dias_selecionados = st.multiselect("Selecione as datas disponíveis:", gerar_datas_periodo_fixo())
 
 reservas = []
 if len(dias_selecionados) > 0:
@@ -127,4 +128,3 @@ st.download_button(
     file_name="escala_lab.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
-
