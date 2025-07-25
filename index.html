@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Relatórios Automatizado</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h1 {
+      color: #2c3e50;
+      font-size: 2.2em;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #5a6c7d;
+      font-size: 1.1em;
+      margin-bottom: 30px;
+    }
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 30px;
+    }
+    @media (max-width: 900px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    .panel-title {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eee;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #5a6c7d;
+      font-weight: 500;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .btn {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0078d4, #005fa3);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #106ebe, #004a87);
+      transform: translateY(-2px);
+    }
+    .report-preview {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      min-height: 500px;
+    }
+    .report-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    .report-title {
+      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .report-date {
+      color: #7f8c8d;
+    }
+    .report-content {
+      line-height: 1.6;
+      color: #333;
+    }
+    .report-content h3 {
+      color: #2c3e50;
+      margin: 20px 0 10px;
+    }
+    .report-content ul {
+      padding-left: 20px;
+      margin: 10px 0;
+    }
+    .report-content li {
+      margin-bottom: 8px;
+    }
+    .chart-container {
+      margin: 25px 0;
+      text-align: center;
+    }
+    .chart-placeholder {
+      background: #f8f9fa;
+      border: 1px dashed #ddd;
+      border-radius: 8px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7f8c8d;
+    }
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 30px;
+    }
+    .feature-list {
+      list-style: none;
+    }
+    .feature-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+    }
+    .feature-list li:before {
+      content: "✓";
+      color: #27ae60;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Gerador de Relatórios Automatizado</h1>
+      <p class="subtitle">Crie relatórios profissionais automaticamente a partir de dados de formulários</p>
+    </header>
+    
+    <div class="dashboard">
+      <div class="panel">
+        <h2 class="panel-title">Configurações do Relatório</h2>
+        
+        <div class="form-group">
+          <label for="reportTitle">Título do Relatório</label>
+          <input type="text" id="reportTitle" value="Relatório Mensal de Atividades Laboratoriais">
+        </div>
+        
+        <div class="form-group">
+          <label for="reportPeriod">Período</label>
+          <select id="reportPeriod">
+            <option>Últimos 7 dias</option>
+            <option selected>Últimos 30 dias</option>
+            <option>Últimos 90 dias</option>
+            <option>Personalizado</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="dataSource">Fonte de Dados</label>
+          <select id="dataSource">
+            <option>Formulário de Solicitação de Sequenciamento</option>
+            <option>Formulário de Uso de Microscópio</option>
+            <option>Dashboard de Manutenção</option>
+            <option>Arquivo CSV Personalizado</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="reportContent">Conteúdo do Relatório</label>
+          <textarea id="reportContent">Este relatório apresenta um resumo das atividades laboratoriais realizadas no período. 
+          
+Seção 1: Análise Quantitativa
+- Total de solicitações recebidas: 42
+- Solicitações concluídas: 38
+- Taxa de conclusão: 90.5%
+
+Seção 2: Recursos Utilizados
+- Horas de equipamento utilizadas: 126h
+- Manutenções preventivas realizadas: 5
+- Novos protocolos implementados: 2
+
+Seção 3: Observações
+- A demanda por sequenciamento aumentou 15% em relação ao mês anterior
+- Necessidade de capacitação adicional identificada para novos usuários</textarea>
+        </div>
+        
+        <button class="btn btn-primary" id="generateReport">Gerar Relatório</button>
+      </div>
+      
+      <div class="report-preview">
+        <div class="report-header">
+          <h2 class="report-title" id="previewTitle">Relatório Mensal de Atividades Laboratoriais</h2>
+          <p class="report-date">Período: Últimos 30 dias | Gerado em: <span id="currentDate"></span></p>
+        </div>
+        
+        <div class="report-content" id="previewContent">
+          <p>Este relatório apresenta um resumo das atividades laboratoriais realizadas no período.</p>
+          
+          <h3>Análise Quantitativa</h3>
+          <ul>
+            <li>Total de solicitações recebidas: 42</li>
+            <li>Solicitações concluídas: 38</li>
+            <li>Taxa de conclusão: 90.5%</li>
+          </ul>
+          
+          <h3>Recursos Utilizados</h3>
+          <ul>
+            <li>Horas de equipamento utilizadas: 126h</li>
+            <li>Manutenções preventivas realizadas: 5</li>
+            <li>Novos protocolos implementados: 2</li>
+          </ul>
+          
+          <h3>Observações</h3>
+          <p>A demanda por sequenciamento aumentou 15% em relação ao mês anterior. Necessidade de capacitação adicional identificada para novos usuários.</p>
+          
+          <div class="chart-container">
+            <h3>Utilização de Equipamentos</h3>
+            <div class="chart-placeholder">
+              Gráfico de barras - Utilização por equipamento
+            </div>
+          </div>
+          
+          <div class="chart-container">
+            <h3>Tendência de Solicitações</h3>
+            <div class="chart-placeholder">
+              Gráfico de linha - Solicitações por semana
+            </div>
+          </div>
+        </div>
+        
+        <div class="actions">
+          <button class="btn btn-primary">Exportar como PDF</button>
+          <button class="btn btn-primary">Exportar como Word</button>
+          <button class="btn btn-primary">Exportar como Excel</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel" style="margin-top: 30px;">
+      <h2 class="panel-title">Recursos do Sistema</h2>
+      <ul class="feature-list">
+        <li>Criação de relatórios personalizados com editor visual</li>
+        <li>Integração automática com Google Forms e planilhas</li>
+        <li>Agendamento de geração de relatórios recorrentes</li>
+        <li>Envio automático por e-mail para stakeholders</li>
+        <li>Visualizações gráficas (barras, linhas, pizza)</li>
+        <li>Exportação em múltiplos formatos (PDF, Word, Excel)</li>
+        <li>Modelos reutilizáveis para diferentes tipos de relatórios</li>
+        <li>Controle de acesso por usuários e permissões</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Atualizar data atual
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('pt-BR');
+    
+    // Atualizar título do relatório em tempo real
+    document.getElementById('reportTitle').addEventListener('input', function() {
+      document.getElementById('previewTitle').textContent = this.value;
+    });
+    
+    // Atualizar conteúdo do relatório em tempo real
+    document.getElementById('reportContent').addEventListener('input', function() {
+      const content = this.value;
+      const paragraphs = content.split('\n\n');
+      
+      let htmlContent = '';
+      paragraphs.forEach(paragraph => {
+        if (paragraph.trim() !== '') {
+          // Verificar se é uma seção (começa com "Seção" ou contém ":")
+          if (paragraph.includes(':') && !paragraph.includes('-')) {
+            htmlContent += `<h3>${paragraph}</h3>`;
+          } 
+          // Verificar se é uma lista
+          else if (paragraph.includes('- ')) {
+            const items = paragraph.split('- ').filter(item => item.trim() !== '');
+            htmlContent += '<ul>';
+            items.forEach(item => {
+              if (item.trim() !== '') {
+                htmlContent += `<li>${item.trim()}</li>`;
+              }
+            });
+            htmlContent += '</ul>';
+          } 
+          // Texto normal
+          else {
+            htmlContent += `<p>${paragraph}</p>`;
+          }
+        }
+      });
+      
+      document.getElementById('previewContent').innerHTML = htmlContent + `
+        <div class="chart-container">
+          <h3>Utilização de Equipamentos</h3>
+          <div class="chart-placeholder">
+            Gráfico de barras - Utilização por equipamento
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <h3>Tendência de Solicitações</h3>
+          <div class="chart-placeholder">
+            Gráfico de linha - Solicitações por semana
+          </div>
+        </div>
+      `;
+    });
+    
+    // Gerar relatório (simulação)
+    document.getElementById('generateReport').addEventListener('click', function() {
+      alert('Relatório gerado com sucesso! Em uma versão completa, aqui você poderia visualizar e exportar o relatório.');
+    });
+  </script>
+</body>
+</html>
