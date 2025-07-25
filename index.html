@@ -94,6 +94,13 @@
       background: linear-gradient(135deg, #106ebe, #004a87);
       transform: translateY(-2px);
     }
+    .btn-secondary {
+      background: #f1f1f1;
+      color: #5a6c7d;
+    }
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
     .report-preview {
       background: white;
       border-radius: 15px;
@@ -165,103 +172,200 @@
       font-weight: bold;
       margin-right: 10px;
     }
+    .upload-area {
+      border: 2px dashed #0078d4;
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      background-color: #f0f8ff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .upload-area:hover {
+      background-color: #e1f0fa;
+    }
+    .upload-area p {
+      margin: 10px 0;
+      color: #5a6c7d;
+    }
+    .file-info {
+      margin-top: 15px;
+      padding: 10px;
+      background: #e8f4fc;
+      border-radius: 8px;
+      display: none;
+    }
+    .data-preview {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .data-table th {
+      background-color: #f1f8ff;
+      position: sticky;
+      top: 0;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      background: #f1f1f1;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      margin-right: 5px;
+    }
+    .tab.active {
+      background: #0078d4;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
       <h1>Gerador de Relatórios Automatizado</h1>
-      <p class="subtitle">Crie relatórios profissionais automaticamente a partir de dados de formulários</p>
+      <p class="subtitle">Carregue sua planilha e gere relatórios profissionais automaticamente</p>
     </header>
     
     <div class="dashboard">
       <div class="panel">
         <h2 class="panel-title">Configurações do Relatório</h2>
         
-        <div class="form-group">
-          <label for="reportTitle">Título do Relatório</label>
-          <input type="text" id="reportTitle" value="Relatório Mensal de Atividades Laboratoriais">
+        <div class="tabs">
+          <button class="tab active" data-tab="upload">Upload de Dados</button>
+          <button class="tab" data-tab="config">Configurações</button>
         </div>
         
-        <div class="form-group">
-          <label for="reportPeriod">Período</label>
-          <select id="reportPeriod">
-            <option>Últimos 7 dias</option>
-            <option selected>Últimos 30 dias</option>
-            <option>Últimos 90 dias</option>
-            <option>Personalizado</option>
-          </select>
+        <div class="tab-content active" id="upload-tab">
+          <div class="form-group">
+            <label for="reportTitle">Título do Relatório</label>
+            <input type="text" id="reportTitle" value="Relatório de Atividades">
+          </div>
+          
+          <div class="form-group">
+            <label>Carregar Planilha (CSV/Excel)</label>
+            <div class="upload-area" id="dropArea">
+              <svg width="50" height="50" fill="#0078d4" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+              </svg>
+              <p>Arraste e solte sua planilha aqui</p>
+              <p>ou</p>
+              <button class="btn btn-primary" id="browseBtn">Selecionar Arquivo</button>
+              <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+            </div>
+            <div class="file-info" id="fileInfo">
+              <p>Arquivo selecionado: <span id="fileName"></span></p>
+              <p>Tamanho: <span id="fileSize"></span></p>
+            </div>
+          </div>
+          
+          <div class="data-preview" id="dataPreview">
+            <h3>Pré-visualização dos Dados</h3>
+            <table class="data-table" id="dataTable">
+              <!-- Dados aparecerão aqui -->
+            </table>
+          </div>
+          
+          <div class="success-message" id="successMessage">
+            Planilha carregada com sucesso! Agora configure seu relatório.
+          </div>
         </div>
         
-        <div class="form-group">
-          <label for="dataSource">Fonte de Dados</label>
-          <select id="dataSource">
-            <option>Formulário de Solicitação de Sequenciamento</option>
-            <option>Formulário de Uso de Microscópio</option>
-            <option>Dashboard de Manutenção</option>
-            <option>Arquivo CSV Personalizado</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label for="reportContent">Conteúdo do Relatório</label>
-          <textarea id="reportContent">Este relatório apresenta um resumo das atividades laboratoriais realizadas no período. 
+        <div class="tab-content" id="config-tab">
+          <div class="form-group">
+            <label for="reportPeriod">Período</label>
+            <select id="reportPeriod">
+              <option>Últimos 7 dias</option>
+              <option selected>Últimos 30 dias</option>
+              <option>Últimos 90 dias</option>
+              <option>Personalizado</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="reportContent">Conteúdo do Relatório</label>
+            <textarea id="reportContent">Este relatório apresenta um resumo das atividades realizadas no período.
           
 Seção 1: Análise Quantitativa
-- Total de solicitações recebidas: 42
-- Solicitações concluídas: 38
-- Taxa de conclusão: 90.5%
+- Total de registros: [TOTAL_REGISTROS]
+- Média de valores: [MEDIA_VALORES]
 
-Seção 2: Recursos Utilizados
-- Horas de equipamento utilizadas: 126h
-- Manutenções preventivas realizadas: 5
-- Novos protocolos implementados: 2
+Seção 2: Destaques
+- Registro com maior valor: [MAIOR_VALOR]
+- Registro com menor valor: [MENOR_VALOR]
 
 Seção 3: Observações
-- A demanda por sequenciamento aumentou 15% em relação ao mês anterior
-- Necessidade de capacitação adicional identificada para novos usuários</textarea>
+- Os dados foram extraídos da planilha carregada
+- Relatório gerado automaticamente pelo sistema</textarea>
+          </div>
+          
+          <button class="btn btn-primary" id="generateReport">Gerar Relatório</button>
         </div>
-        
-        <button class="btn btn-primary" id="generateReport">Gerar Relatório</button>
       </div>
       
       <div class="report-preview">
         <div class="report-header">
-          <h2 class="report-title" id="previewTitle">Relatório Mensal de Atividades Laboratoriais</h2>
+          <h2 class="report-title" id="previewTitle">Relatório de Atividades</h2>
           <p class="report-date">Período: Últimos 30 dias | Gerado em: <span id="currentDate"></span></p>
         </div>
         
         <div class="report-content" id="previewContent">
-          <p>Este relatório apresenta um resumo das atividades laboratoriais realizadas no período.</p>
+          <p>Este relatório apresenta um resumo das atividades realizadas no período.</p>
           
           <h3>Análise Quantitativa</h3>
           <ul>
-            <li>Total de solicitações recebidas: 42</li>
-            <li>Solicitações concluídas: 38</li>
-            <li>Taxa de conclusão: 90.5%</li>
+            <li>Total de registros: 0</li>
+            <li>Média de valores: 0</li>
           </ul>
           
-          <h3>Recursos Utilizados</h3>
+          <h3>Destaques</h3>
           <ul>
-            <li>Horas de equipamento utilizadas: 126h</li>
-            <li>Manutenções preventivas realizadas: 5</li>
-            <li>Novos protocolos implementados: 2</li>
+            <li>Registro com maior valor: -</li>
+            <li>Registro com menor valor: -</li>
           </ul>
           
           <h3>Observações</h3>
-          <p>A demanda por sequenciamento aumentou 15% em relação ao mês anterior. Necessidade de capacitação adicional identificada para novos usuários.</p>
+          <p>Os dados foram extraídos da planilha carregada. Relatório gerado automaticamente pelo sistema.</p>
           
           <div class="chart-container">
-            <h3>Utilização de Equipamentos</h3>
+            <h3>Distribuição de Valores</h3>
             <div class="chart-placeholder">
-              Gráfico de barras - Utilização por equipamento
+              Gráfico de barras - Distribuição dos dados
             </div>
           </div>
           
           <div class="chart-container">
-            <h3>Tendência de Solicitações</h3>
+            <h3>Tendência</h3>
             <div class="chart-placeholder">
-              Gráfico de linha - Solicitações por semana
+              Gráfico de linha - Tendência dos dados
             </div>
           </div>
         </div>
@@ -275,17 +379,25 @@ Seção 3: Observações
     </div>
     
     <div class="panel" style="margin-top: 30px;">
-      <h2 class="panel-title">Recursos do Sistema</h2>
-      <ul class="feature-list">
-        <li>Criação de relatórios personalizados com editor visual</li>
-        <li>Integração automática com Google Forms e planilhas</li>
-        <li>Agendamento de geração de relatórios recorrentes</li>
-        <li>Envio automático por e-mail para stakeholders</li>
-        <li>Visualizações gráficas (barras, linhas, pizza)</li>
-        <li>Exportação em múltiplos formatos (PDF, Word, Excel)</li>
-        <li>Modelos reutilizáveis para diferentes tipos de relatórios</li>
-        <li>Controle de acesso por usuários e permissões</li>
-      </ul>
+      <h2 class="panel-title">Como Funciona</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div>
+          <h3>1. Carregue sua Planilha</h3>
+          <p>Faça upload de uma planilha Excel (.xlsx) ou CSV (.csv) com seus dados.</p>
+        </div>
+        <div>
+          <h3>2. Configure o Relatório</h3>
+          <p>Escolha o período e personalize o conteúdo do relatório.</p>
+        </div>
+        <div>
+          <h3>3. Gere Automaticamente</h3>
+          <p>Clique em "Gerar Relatório" para criar seu documento profissional.</p>
+        </div>
+        <div>
+          <h3>4. Exporte e Compartilhe</h3>
+          <p>Exporte em PDF, Word ou Excel e compartilhe com sua equipe.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -297,6 +409,164 @@ Seção 3: Observações
     document.getElementById('reportTitle').addEventListener('input', function() {
       document.getElementById('previewTitle').textContent = this.value;
     });
+    
+    // Sistema de abas
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remover classe ativa de todas as abas
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        // Adicionar classe ativa à aba clicada
+        this.classList.add('active');
+        
+        // Esconder todos os conteúdos de aba
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        // Mostrar o conteúdo da aba clicada
+        const tabId = this.getAttribute('data-tab');
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+      });
+    });
+    
+    // Upload de arquivo
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const browseBtn = document.getElementById('browseBtn');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const dataPreview = document.getElementById('dataPreview');
+    const dataTable = document.getElementById('dataTable');
+    const successMessage = document.getElementById('successMessage');
+    
+    // Clicar no botão de navegação abre o input de arquivo
+    browseBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+    
+    // Quando um arquivo é selecionado
+    fileInput.addEventListener('change', function() {
+      if (this.files.length) {
+        handleFile(this.files[0]);
+      }
+    });
+    
+    // Prevenir comportamento padrão do drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Destacar área de drop quando arquivo é arrastado sobre ela
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+      dropArea.style.backgroundColor = '#d0e8ff';
+      dropArea.style.borderColor = '#005fa3';
+    }
+    
+    function unhighlight() {
+      dropArea.style.backgroundColor = '#f0f8ff';
+      dropArea.style.borderColor = '#0078d4';
+    }
+    
+    // Lidar com o arquivo quando é solto na área
+    dropArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const file = dt.files[0];
+      handleFile(file);
+    }
+    
+    // Processar o arquivo
+    function handleFile(file) {
+      // Mostrar informações do arquivo
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      fileInfo.style.display = 'block';
+      
+      // Mostrar mensagem de sucesso
+      successMessage.style.display = 'block';
+      
+      // Simular processamento da planilha
+      setTimeout(() => {
+        // Gerar dados de exemplo para demonstração
+        const sampleData = generateSampleData();
+        displayData(sampleData);
+      }, 1000);
+    }
+    
+    // Formatar tamanho do arquivo
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Gerar dados de exemplo para demonstração
+    function generateSampleData() {
+      const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Status'];
+      const rows = [];
+      
+      for (let i = 1; i <= 15; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+        
+        rows.push([
+          date.toLocaleDateString('pt-BR'),
+          `Registro ${i}`,
+          ['Categoria A', 'Categoria B', 'Categoria C'][Math.floor(Math.random() * 3)],
+          (Math.random() * 1000).toFixed(2),
+          ['Concluído', 'Pendente', 'Em Andamento'][Math.floor(Math.random() * 3)]
+        ]);
+      }
+      
+      return { headers, rows };
+    }
+    
+    // Exibir dados na tabela
+    function displayData(data) {
+      // Limpar tabela
+      dataTable.innerHTML = '';
+      
+      // Criar cabeçalho
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      data.headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      dataTable.appendChild(thead);
+      
+      // Criar corpo
+      const tbody = document.createElement('tbody');
+      data.rows.forEach(row => {
+        const tr = document.createElement('tr');
+        row.forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      dataTable.appendChild(tbody);
+      
+      // Mostrar pré-visualização
+      dataPreview.style.display = 'block';
+    }
     
     // Atualizar conteúdo do relatório em tempo real
     document.getElementById('reportContent').addEventListener('input', function() {
@@ -330,16 +600,16 @@ Seção 3: Observações
       
       document.getElementById('previewContent').innerHTML = htmlContent + `
         <div class="chart-container">
-          <h3>Utilização de Equipamentos</h3>
+          <h3>Distribuição de Valores</h3>
           <div class="chart-placeholder">
-            Gráfico de barras - Utilização por equipamento
+            Gráfico de barras - Distribuição dos dados
           </div>
         </div>
         
         <div class="chart-container">
-          <h3>Tendência de Solicitações</h3>
+          <h3>Tendência</h3>
           <div class="chart-placeholder">
-            Gráfico de linha - Solicitações por semana
+            Gráfico de linha - Tendência dos dados
           </div>
         </div>
       `;
