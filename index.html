@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gerador de Relatórios Automatizado</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -246,6 +248,10 @@
       margin: 20px 0;
       display: none;
     }
+    canvas {
+      max-width: 100%;
+      height: auto;
+    }
   </style>
 </head>
 <body>
@@ -357,23 +363,19 @@ Seção 3: Observações
           
           <div class="chart-container">
             <h3>Distribuição de Valores</h3>
-            <div class="chart-placeholder">
-              Gráfico de barras - Distribuição dos dados
-            </div>
+            <canvas id="barChart" height="200"></canvas>
           </div>
           
           <div class="chart-container">
             <h3>Tendência</h3>
-            <div class="chart-placeholder">
-              Gráfico de linha - Tendência dos dados
-            </div>
+            <canvas id="lineChart" height="200"></canvas>
           </div>
         </div>
         
         <div class="actions">
-          <button class="btn btn-primary">Exportar como PDF</button>
-          <button class="btn btn-primary">Exportar como Word</button>
-          <button class="btn btn-primary">Exportar como Excel</button>
+          <button class="btn btn-primary" id="exportPdf">Exportar como PDF</button>
+          <button class="btn btn-primary" id="exportWord">Exportar como Word</button>
+          <button class="btn btn-primary" id="exportExcel">Exportar como Excel</button>
         </div>
       </div>
     </div>
@@ -402,6 +404,11 @@ Seção 3: Observações
   </div>
 
   <script>
+    // Variáveis globais para armazenar dados
+    let sheetData = [];
+    let barChart = null;
+    let lineChart = null;
+    
     // Atualizar data atual
     document.getElementById('currentDate').textContent = new Date().toLocaleDateString('pt-BR');
     
@@ -497,12 +504,27 @@ Seção 3: Observações
       // Mostrar mensagem de sucesso
       successMessage.style.display = 'block';
       
-      // Simular processamento da planilha
-      setTimeout(() => {
-        // Gerar dados de exemplo para demonstração
-        const sampleData = generateSampleData();
-        displayData(sampleData);
-      }, 1000);
+      // Ler o arquivo
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        
+        // Pegar a primeira planilha
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Converter para JSON
+        sheetData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+        
+        // Exibir dados
+        displayData(sheetData);
+        
+        // Gerar gráficos
+        generateCharts(sheetData);
+      };
+      
+      reader.readAsArrayBuffer(file);
     }
     
     // Formatar tamanho do arquivo
@@ -514,63 +536,137 @@ Seção 3: Observações
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
     
-    // Gerar dados de exemplo para demonstração
-    function generateSampleData() {
-      const headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Status'];
-      const rows = [];
-      
-      for (let i = 1; i <= 15; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-        
-        rows.push([
-          date.toLocaleDateString('pt-BR'),
-          `Registro ${i}`,
-          ['Categoria A', 'Categoria B', 'Categoria C'][Math.floor(Math.random() * 3)],
-          (Math.random() * 1000).toFixed(2),
-          ['Concluído', 'Pendente', 'Em Andamento'][Math.floor(Math.random() * 3)]
-        ]);
-      }
-      
-      return { headers, rows };
-    }
-    
     // Exibir dados na tabela
     function displayData(data) {
       // Limpar tabela
       dataTable.innerHTML = '';
       
+      if (data.length === 0) return;
+      
       // Criar cabeçalho
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
-      data.headers.forEach(header => {
+      
+      // Assumindo que a primeira linha são os cabeçalhos
+      data[0].forEach(header => {
         const th = document.createElement('th');
         th.textContent = header;
         headerRow.appendChild(th);
       });
+      
       thead.appendChild(headerRow);
       dataTable.appendChild(thead);
       
       // Criar corpo
       const tbody = document.createElement('tbody');
-      data.rows.forEach(row => {
-        const tr = document.createElement('tr');
-        row.forEach(cell => {
+      
+      // Começar da segunda linha (índice 1) pois a primeira são cabeçalhos
+      for (let i = 1; i < Math.min(data.length, 20); i++) { // Mostrar apenas as primeiras 20 linhas
+        const row = document.createElement('tr');
+        data[i].forEach(cell => {
           const td = document.createElement('td');
           td.textContent = cell;
-          tr.appendChild(td);
+          row.appendChild(td);
         });
-        tbody.appendChild(tr);
-      });
+        tbody.appendChild(row);
+      }
+      
       dataTable.appendChild(tbody);
       
       // Mostrar pré-visualização
       dataPreview.style.display = 'block';
     }
     
+    // Gerar gráficos
+    function generateCharts(data) {
+      if (data.length < 2) return;
+      
+      // Destruir gráficos existentes se houver
+      if (barChart) barChart.destroy();
+      if (lineChart) lineChart.destroy();
+      
+      // Pegar cabeçalhos
+      const headers = data[0];
+      
+      // Para simplificação, vamos assumir que a segunda coluna contém categorias
+      // e a terceira coluna contém valores numéricos
+      const categories = [];
+      const values = [];
+      
+      for (let i = 1; i < Math.min(data.length, 10); i++) { // Limitar a 10 itens
+        if (data[i].length >= 2) {
+          categories.push(data[i][0] || `Item ${i}`);
+          // Converter para número, se possível
+          const val = parseFloat(data[i][1]);
+          values.push(isNaN(val) ? 0 : val);
+        }
+      }
+      
+      // Gráfico de barras
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: categories,
+          datasets: [{
+            label: 'Valores',
+            data: values,
+            backgroundColor: 'rgba(0, 120, 212, 0.7)',
+            borderColor: 'rgba(0, 120, 212, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+      
+      // Gráfico de linha
+      const lineCtx = document.getElementById('lineChart').getContext('2d');
+      lineChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels: categories,
+          datasets: [{
+            label: 'Tendência',
+            data: values,
+            fill: false,
+            borderColor: 'rgb(231, 76, 60)',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+    
     // Atualizar conteúdo do relatório em tempo real
     document.getElementById('reportContent').addEventListener('input', function() {
-      const content = this.value;
+      updateReportContent();
+    });
+    
+    // Função para atualizar conteúdo do relatório
+    function updateReportContent() {
+      const content = document.getElementById('reportContent').value;
       const paragraphs = content.split('\n\n');
       
       let htmlContent = '';
@@ -598,26 +694,193 @@ Seção 3: Observações
         }
       });
       
-      document.getElementById('previewContent').innerHTML = htmlContent + `
+      // Adicionar gráficos
+      htmlContent += `
         <div class="chart-container">
           <h3>Distribuição de Valores</h3>
-          <div class="chart-placeholder">
-            Gráfico de barras - Distribuição dos dados
-          </div>
+          <canvas id="barChartPreview" height="200"></canvas>
         </div>
         
         <div class="chart-container">
           <h3>Tendência</h3>
-          <div class="chart-placeholder">
-            Gráfico de linha - Tendência dos dados
-          </div>
+          <canvas id="lineChartPreview" height="200"></canvas>
         </div>
       `;
+      
+      document.getElementById('previewContent').innerHTML = htmlContent;
+      
+      // Recriar gráficos na pré-visualização
+      setTimeout(() => {
+        recreateCharts();
+      }, 100);
+    }
+    
+    // Recriar gráficos na pré-visualização
+    function recreateCharts() {
+      if (sheetData.length < 2) return;
+      
+      // Pegar cabeçalhos
+      const headers = sheetData[0];
+      
+      // Para simplificação, vamos assumir que a segunda coluna contém categorias
+      // e a terceira coluna contém valores numéricos
+      const categories = [];
+      const values = [];
+      
+      for (let i = 1; i < Math.min(sheetData.length, 10); i++) { // Limitar a 10 itens
+        if (sheetData[i].length >= 2) {
+          categories.push(sheetData[i][0] || `Item ${i}`);
+          // Converter para número, se possível
+          const val = parseFloat(sheetData[i][1]);
+          values.push(isNaN(val) ? 0 : val);
+        }
+      }
+      
+      // Destruir gráficos existentes se houver
+      if (window.barChartPreview) window.barChartPreview.destroy();
+      if (window.lineChartPreview) window.lineChartPreview.destroy();
+      
+      // Gráfico de barras
+      const barCtx = document.getElementById('barChartPreview').getContext('2d');
+      window.barChartPreview = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: categories,
+          datasets: [{
+            label: 'Valores',
+            data: values,
+            backgroundColor: 'rgba(0, 120, 212, 0.7)',
+            borderColor: 'rgba(0, 120, 212, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            title: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+      
+      // Gráfico de linha
+      const lineCtx = document.getElementById('lineChartPreview').getContext('2d');
+      window.lineChartPreview = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels: categories,
+          datasets: [{
+            label: 'Tendência',
+            data: values,
+            fill: false,
+            borderColor: 'rgb(231, 76, 60)',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+    
+    // Gerar relatório
+    document.getElementById('generateReport').addEventListener('click', function() {
+      updateReportContent();
+      alert('Relatório gerado com sucesso! Agora você pode exportar nos formatos desejados.');
     });
     
-    // Gerar relatório (simulação)
-    document.getElementById('generateReport').addEventListener('click', function() {
-      alert('Relatório gerado com sucesso! Em uma versão completa, aqui você poderia visualizar e exportar o relatório.');
+    // Exportar como PDF
+    document.getElementById('exportPdf').addEventListener('click', function() {
+      const reportContent = document.querySelector('.report-preview').innerHTML;
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Relatório</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              .report-header { text-align: center; margin-bottom: 30px; }
+              .report-title { font-size: 24px; margin-bottom: 10px; }
+              .report-date { color: #666; }
+              .report-content { line-height: 1.6; }
+              .report-content h3 { margin: 20px 0 10px; }
+              .report-content ul { padding-left: 20px; }
+              .report-content li { margin-bottom: 5px; }
+              .chart-container { margin: 25px 0; text-align: center; }
+              canvas { max-width: 100%; height: auto; }
+            </style>
+          </head>
+          <body>
+            ${reportContent}
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+              // Recriar gráficos após carregar
+              window.onload = function() {
+                setTimeout(function() {
+                  // Aqui você pode recriar os gráficos se necessário
+                }, 1000);
+              }
+            <\/script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    });
+    
+    // Exportar como Word
+    document.getElementById('exportWord').addEventListener('click', function() {
+      const reportContent = document.querySelector('.report-preview').innerHTML;
+      const blob = new Blob([`
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+              xmlns:w='urn:schemas-microsoft-com:office:word' 
+              xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <meta charset='utf-8'>
+            <title>Relatório</title>
+          </head>
+          <body>
+            ${reportContent}
+          </body>
+        </html>
+      `], {type: 'application/msword'});
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'relatorio.doc';
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+    
+    // Exportar como Excel
+    document.getElementById('exportExcel').addEventListener('click', function() {
+      if (sheetData.length === 0) {
+        alert('Nenhum dado carregado para exportar.');
+        return;
+      }
+      
+      // Converter dados para planilha
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+      
+      // Exportar
+      XLSX.writeFile(wb, "relatorio.xlsx");
     });
   </script>
 </body>
