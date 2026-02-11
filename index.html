@@ -713,9 +713,10 @@
                 const canvas = document.getElementById(`signature${type.charAt(0).toUpperCase() + type.slice(1)}`);
                 const ctx = canvas.getContext('2d');
                 
-                // Definir tamanho do canvas
+                // Definir tamanho do canvas baseado no container
                 const container = canvas.parentElement;
-                canvas.width = container.offsetWidth;
+                const rect = container.getBoundingClientRect();
+                canvas.width = rect.width;
                 canvas.height = 250;
                 
                 // Configurar contexto
@@ -728,36 +729,58 @@
                 signatures[type].ctx = ctx;
                 
                 // Event listeners para mouse
-                canvas.addEventListener('mousedown', (e) => startDrawing(e, type));
-                canvas.addEventListener('mousemove', (e) => draw(e, type));
-                canvas.addEventListener('mouseup', () => stopDrawing(type));
-                canvas.addEventListener('mouseout', () => stopDrawing(type));
+                canvas.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    startDrawing(e, type);
+                });
                 
-                // Event listeners para touch
+                canvas.addEventListener('mousemove', (e) => {
+                    e.preventDefault();
+                    draw(e, type);
+                });
+                
+                canvas.addEventListener('mouseup', (e) => {
+                    e.preventDefault();
+                    stopDrawing(type);
+                });
+                
+                canvas.addEventListener('mouseleave', (e) => {
+                    e.preventDefault();
+                    stopDrawing(type);
+                });
+                
+                // Event listeners para touch (mobile)
                 canvas.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     const touch = e.touches[0];
-                    const mouseEvent = new MouseEvent('mousedown', {
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseEvent = {
                         clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    canvas.dispatchEvent(mouseEvent);
+                        clientY: touch.clientY,
+                        preventDefault: () => {}
+                    };
+                    startDrawing(mouseEvent, type);
                 });
                 
                 canvas.addEventListener('touchmove', (e) => {
                     e.preventDefault();
                     const touch = e.touches[0];
-                    const mouseEvent = new MouseEvent('mousemove', {
+                    const mouseEvent = {
                         clientX: touch.clientX,
-                        clientY: touch.clientY
-                    });
-                    canvas.dispatchEvent(mouseEvent);
+                        clientY: touch.clientY,
+                        preventDefault: () => {}
+                    };
+                    draw(mouseEvent, type);
                 });
                 
                 canvas.addEventListener('touchend', (e) => {
                     e.preventDefault();
-                    const mouseEvent = new MouseEvent('mouseup', {});
-                    canvas.dispatchEvent(mouseEvent);
+                    stopDrawing(type);
+                });
+                
+                canvas.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    stopDrawing(type);
                 });
             });
         }
@@ -771,19 +794,21 @@
         }
 
         function startDrawing(e, type) {
+            e.preventDefault();
             signatures[type].isDrawing = true;
             const pos = getMousePos(signatures[type].canvas, e);
             signatures[type].ctx.beginPath();
             signatures[type].ctx.moveTo(pos.x, pos.y);
-            signatures[type].hasSignature = true;
         }
 
         function draw(e, type) {
             if (!signatures[type].isDrawing) return;
             
+            e.preventDefault();
             const pos = getMousePos(signatures[type].canvas, e);
             signatures[type].ctx.lineTo(pos.x, pos.y);
             signatures[type].ctx.stroke();
+            signatures[type].hasSignature = true;
         }
 
         function stopDrawing(type) {
