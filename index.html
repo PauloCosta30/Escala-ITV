@@ -703,20 +703,26 @@
 
         // Configuração das assinaturas
         const signatures = {
-            projetista: { canvas: null, ctx: null, isDrawing: false, hasSignature: false },
-            cliente: { canvas: null, ctx: null, isDrawing: false, hasSignature: false }
+            projetista: { canvas: null, ctx: null, isDrawing: false, hasSignature: false, lastX: 0, lastY: 0 },
+            cliente: { canvas: null, ctx: null, isDrawing: false, hasSignature: false, lastX: 0, lastY: 0 }
         };
 
         // Inicializar canvas de assinatura
         function initSignatureCanvas() {
             ['projetista', 'cliente'].forEach(type => {
-                const canvas = document.getElementById(`signature${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                const canvasId = `signature${type.charAt(0).toUpperCase() + type.slice(1)}`;
+                const canvas = document.getElementById(canvasId);
+                
+                if (!canvas) {
+                    console.error('Canvas não encontrado:', canvasId);
+                    return;
+                }
+                
                 const ctx = canvas.getContext('2d');
                 
-                // Definir tamanho do canvas baseado no container
+                // Definir tamanho do canvas
                 const container = canvas.parentElement;
-                const rect = container.getBoundingClientRect();
-                canvas.width = rect.width;
+                canvas.width = container.clientWidth;
                 canvas.height = 250;
                 
                 // Configurar contexto
@@ -728,97 +734,102 @@
                 signatures[type].canvas = canvas;
                 signatures[type].ctx = ctx;
                 
-                // Event listeners para mouse
-                canvas.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    startDrawing(e, type);
-                });
+                console.log('Canvas inicializado:', type, 'Tamanho:', canvas.width, 'x', canvas.height);
                 
-                canvas.addEventListener('mousemove', (e) => {
-                    e.preventDefault();
-                    draw(e, type);
-                });
+                // MOUSE EVENTS
+                canvas.addEventListener('mousedown', function(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    signatures[type].isDrawing = true;
+                    signatures[type].lastX = x;
+                    signatures[type].lastY = y;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    
+                    console.log('Mouse down:', type, x, y);
+                }, false);
                 
-                canvas.addEventListener('mouseup', (e) => {
-                    e.preventDefault();
-                    stopDrawing(type);
-                });
+                canvas.addEventListener('mousemove', function(e) {
+                    if (!signatures[type].isDrawing) return;
+                    
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                    
+                    signatures[type].lastX = x;
+                    signatures[type].lastY = y;
+                    signatures[type].hasSignature = true;
+                }, false);
                 
-                canvas.addEventListener('mouseleave', (e) => {
-                    e.preventDefault();
-                    stopDrawing(type);
-                });
+                canvas.addEventListener('mouseup', function(e) {
+                    signatures[type].isDrawing = false;
+                    console.log('Mouse up:', type);
+                }, false);
                 
-                // Event listeners para touch (mobile)
-                canvas.addEventListener('touchstart', (e) => {
+                canvas.addEventListener('mouseleave', function(e) {
+                    signatures[type].isDrawing = false;
+                }, false);
+                
+                // TOUCH EVENTS
+                canvas.addEventListener('touchstart', function(e) {
                     e.preventDefault();
                     const touch = e.touches[0];
                     const rect = canvas.getBoundingClientRect();
-                    const mouseEvent = {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY,
-                        preventDefault: () => {}
-                    };
-                    startDrawing(mouseEvent, type);
-                });
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    
+                    signatures[type].isDrawing = true;
+                    signatures[type].lastX = x;
+                    signatures[type].lastY = y;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    
+                    console.log('Touch start:', type, x, y);
+                }, false);
                 
-                canvas.addEventListener('touchmove', (e) => {
+                canvas.addEventListener('touchmove', function(e) {
                     e.preventDefault();
+                    if (!signatures[type].isDrawing) return;
+                    
                     const touch = e.touches[0];
-                    const mouseEvent = {
-                        clientX: touch.clientX,
-                        clientY: touch.clientY,
-                        preventDefault: () => {}
-                    };
-                    draw(mouseEvent, type);
-                });
+                    const rect = canvas.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                    
+                    signatures[type].lastX = x;
+                    signatures[type].lastY = y;
+                    signatures[type].hasSignature = true;
+                }, false);
                 
-                canvas.addEventListener('touchend', (e) => {
+                canvas.addEventListener('touchend', function(e) {
                     e.preventDefault();
-                    stopDrawing(type);
-                });
+                    signatures[type].isDrawing = false;
+                    console.log('Touch end:', type);
+                }, false);
                 
-                canvas.addEventListener('touchcancel', (e) => {
+                canvas.addEventListener('touchcancel', function(e) {
                     e.preventDefault();
-                    stopDrawing(type);
-                });
+                    signatures[type].isDrawing = false;
+                }, false);
             });
-        }
-
-        function getMousePos(canvas, e) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-        }
-
-        function startDrawing(e, type) {
-            e.preventDefault();
-            signatures[type].isDrawing = true;
-            const pos = getMousePos(signatures[type].canvas, e);
-            signatures[type].ctx.beginPath();
-            signatures[type].ctx.moveTo(pos.x, pos.y);
-        }
-
-        function draw(e, type) {
-            if (!signatures[type].isDrawing) return;
-            
-            e.preventDefault();
-            const pos = getMousePos(signatures[type].canvas, e);
-            signatures[type].ctx.lineTo(pos.x, pos.y);
-            signatures[type].ctx.stroke();
-            signatures[type].hasSignature = true;
-        }
-
-        function stopDrawing(type) {
-            signatures[type].isDrawing = false;
         }
 
         function clearSignature(type) {
             const canvas = signatures[type].canvas;
-            signatures[type].ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const ctx = signatures[type].ctx;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             signatures[type].hasSignature = false;
+            console.log('Assinatura limpa:', type);
         }
 
         function openTab(tabName) {
