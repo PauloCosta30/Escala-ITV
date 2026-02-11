@@ -704,134 +704,162 @@
         };
 
         // Configuração das assinaturas
-        const signatures = {
-            projetista: { canvas: null, ctx: null, isDrawing: false, hasSignature: false, lastX: 0, lastY: 0 },
-            cliente: { canvas: null, ctx: null, isDrawing: false, hasSignature: false, lastX: 0, lastY: 0 }
+        const signaturePads = {
+            projetista: null,
+            cliente: null
         };
+
+        // Classe para gerenciar a assinatura
+        class SignaturePad {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.isDrawing = false;
+                this.hasSignature = false;
+                
+                // Configurar canvas
+                this.resizeCanvas();
+                
+                // Configurar estilo
+                this.ctx.strokeStyle = '#000000';
+                this.ctx.lineWidth = 2;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                
+                // Bind dos event handlers
+                this.handleMouseDown = this.handleMouseDown.bind(this);
+                this.handleMouseMove = this.handleMouseMove.bind(this);
+                this.handleMouseUp = this.handleMouseUp.bind(this);
+                this.handleTouchStart = this.handleTouchStart.bind(this);
+                this.handleTouchMove = this.handleTouchMove.bind(this);
+                this.handleTouchEnd = this.handleTouchEnd.bind(this);
+                
+                // Adicionar event listeners
+                this.addEventListeners();
+            }
+            
+            resizeCanvas() {
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = 250;
+            }
+            
+            addEventListeners() {
+                // Mouse events
+                this.canvas.addEventListener('mousedown', this.handleMouseDown);
+                this.canvas.addEventListener('mousemove', this.handleMouseMove);
+                this.canvas.addEventListener('mouseup', this.handleMouseUp);
+                this.canvas.addEventListener('mouseleave', this.handleMouseUp);
+                
+                // Touch events
+                this.canvas.addEventListener('touchstart', this.handleTouchStart);
+                this.canvas.addEventListener('touchmove', this.handleTouchMove);
+                this.canvas.addEventListener('touchend', this.handleTouchEnd);
+            }
+            
+            getCoordinates(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                
+                if (e.touches && e.touches.length > 0) {
+                    return {
+                        x: (e.touches[0].clientX - rect.left) * scaleX,
+                        y: (e.touches[0].clientY - rect.top) * scaleY
+                    };
+                }
+                
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+            
+            handleMouseDown(e) {
+                e.preventDefault();
+                this.isDrawing = true;
+                const coords = this.getCoordinates(e);
+                this.ctx.beginPath();
+                this.ctx.moveTo(coords.x, coords.y);
+            }
+            
+            handleMouseMove(e) {
+                if (!this.isDrawing) return;
+                e.preventDefault();
+                
+                const coords = this.getCoordinates(e);
+                this.ctx.lineTo(coords.x, coords.y);
+                this.ctx.stroke();
+                this.hasSignature = true;
+            }
+            
+            handleMouseUp(e) {
+                if (!this.isDrawing) return;
+                e.preventDefault();
+                this.isDrawing = false;
+            }
+            
+            handleTouchStart(e) {
+                e.preventDefault();
+                this.isDrawing = true;
+                const coords = this.getCoordinates(e);
+                this.ctx.beginPath();
+                this.ctx.moveTo(coords.x, coords.y);
+            }
+            
+            handleTouchMove(e) {
+                if (!this.isDrawing) return;
+                e.preventDefault();
+                
+                const coords = this.getCoordinates(e);
+                this.ctx.lineTo(coords.x, coords.y);
+                this.ctx.stroke();
+                this.hasSignature = true;
+            }
+            
+            handleTouchEnd(e) {
+                if (!this.isDrawing) return;
+                e.preventDefault();
+                this.isDrawing = false;
+            }
+            
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.hasSignature = false;
+            }
+            
+            getDataURL() {
+                return this.canvas.toDataURL('image/png');
+            }
+        }
 
         // Inicializar canvas de assinatura
         function initSignatureCanvas() {
-            ['projetista', 'cliente'].forEach(type => {
-                const canvasId = `signature${type.charAt(0).toUpperCase() + type.slice(1)}`;
-                const canvas = document.getElementById(canvasId);
-                
-                if (!canvas) {
-                    console.error('Canvas não encontrado:', canvasId);
-                    return;
-                }
-                
-                const ctx = canvas.getContext('2d');
-                
-                // Definir tamanho do canvas
-                const container = canvas.parentElement;
-                canvas.width = container.clientWidth;
-                canvas.height = 250;
-                
-                // Configurar contexto
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                
-                signatures[type].canvas = canvas;
-                signatures[type].ctx = ctx;
-                
-                console.log('Canvas inicializado:', type, 'Tamanho:', canvas.width, 'x', canvas.height);
-                
-                // MOUSE EVENTS
-                canvas.addEventListener('mousedown', function(e) {
-                    const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    signatures[type].isDrawing = true;
-                    signatures[type].lastX = x;
-                    signatures[type].lastY = y;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    
-                    console.log('Mouse down:', type, x, y);
-                }, false);
-                
-                canvas.addEventListener('mousemove', function(e) {
-                    if (!signatures[type].isDrawing) return;
-                    
-                    const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    ctx.lineTo(x, y);
-                    ctx.stroke();
-                    
-                    signatures[type].lastX = x;
-                    signatures[type].lastY = y;
-                    signatures[type].hasSignature = true;
-                }, false);
-                
-                canvas.addEventListener('mouseup', function(e) {
-                    signatures[type].isDrawing = false;
-                    console.log('Mouse up:', type);
-                }, false);
-                
-                canvas.addEventListener('mouseleave', function(e) {
-                    signatures[type].isDrawing = false;
-                }, false);
-                
-                // TOUCH EVENTS
-                canvas.addEventListener('touchstart', function(e) {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    const rect = canvas.getBoundingClientRect();
-                    const x = touch.clientX - rect.left;
-                    const y = touch.clientY - rect.top;
-                    
-                    signatures[type].isDrawing = true;
-                    signatures[type].lastX = x;
-                    signatures[type].lastY = y;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    
-                    console.log('Touch start:', type, x, y);
-                }, false);
-                
-                canvas.addEventListener('touchmove', function(e) {
-                    e.preventDefault();
-                    if (!signatures[type].isDrawing) return;
-                    
-                    const touch = e.touches[0];
-                    const rect = canvas.getBoundingClientRect();
-                    const x = touch.clientX - rect.left;
-                    const y = touch.clientY - rect.top;
-                    
-                    ctx.lineTo(x, y);
-                    ctx.stroke();
-                    
-                    signatures[type].lastX = x;
-                    signatures[type].lastY = y;
-                    signatures[type].hasSignature = true;
-                }, false);
-                
-                canvas.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                    signatures[type].isDrawing = false;
-                    console.log('Touch end:', type);
-                }, false);
-                
-                canvas.addEventListener('touchcancel', function(e) {
-                    e.preventDefault();
-                    signatures[type].isDrawing = false;
-                }, false);
-            });
+            console.log('Iniciando canvas de assinatura...');
+            
+            const canvasProjetista = document.getElementById('signatureProjetista');
+            const canvasCliente = document.getElementById('signatureCliente');
+            
+            if (canvasProjetista) {
+                signaturePads.projetista = new SignaturePad(canvasProjetista);
+                console.log('Canvas Projetista inicializado');
+            } else {
+                console.error('Canvas Projetista não encontrado!');
+            }
+            
+            if (canvasCliente) {
+                signaturePads.cliente = new SignaturePad(canvasCliente);
+                console.log('Canvas Cliente inicializado');
+            } else {
+                console.error('Canvas Cliente não encontrado!');
+            }
         }
 
         function clearSignature(type) {
-            const canvas = signatures[type].canvas;
-            const ctx = signatures[type].ctx;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            signatures[type].hasSignature = false;
-            console.log('Assinatura limpa:', type);
+            if (signaturePads[type]) {
+                signaturePads[type].clear();
+                console.log('Assinatura limpa:', type);
+            }
         }
 
         function openTab(tabName) {
@@ -970,10 +998,10 @@
             }
 
             // Obter assinaturas
-            const signatureProjetista = signatures.projetista.hasSignature ? 
-                signatures.projetista.canvas.toDataURL('image/png') : null;
-            const signatureCliente = signatures.cliente.hasSignature ? 
-                signatures.cliente.canvas.toDataURL('image/png') : null;
+            const signatureProjetista = (signaturePads.projetista && signaturePads.projetista.hasSignature) ? 
+                signaturePads.projetista.getDataURL() : null;
+            const signatureCliente = (signaturePads.cliente && signaturePads.cliente.hasSignature) ? 
+                signaturePads.cliente.getDataURL() : null;
 
             // Contador global de fotos para numeração sequencial
             let photoCounter = 0;
