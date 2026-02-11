@@ -272,6 +272,63 @@
             display: none;
         }
 
+        /* Estilos para assinaturas */
+        .signatures-section {
+            margin-top: 40px;
+        }
+
+        .signatures-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .signature-box {
+            text-align: center;
+        }
+
+        .signature-box h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #1a1a1a;
+        }
+
+        .signature-canvas-container {
+            position: relative;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            background-color: white;
+            overflow: hidden;
+        }
+
+        .signature-canvas {
+            display: block;
+            width: 100%;
+            height: 250px;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .clear-signature-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .clear-signature-btn:hover {
+            background-color: #dc2626;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -284,6 +341,10 @@
             .tab-btn {
                 flex: 1 1 33%;
                 min-width: 100px;
+            }
+
+            .signatures-container {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -341,6 +402,32 @@
             object-fit: contain;
             border: 1px solid #ddd;
             border-radius: 4px;
+        }
+
+        .pdf-signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+            page-break-inside: avoid;
+        }
+
+        .pdf-signature {
+            text-align: center;
+        }
+
+        .pdf-signature h3 {
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .pdf-signature img {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            object-fit: contain;
+            background-color: white;
         }
     </style>
 </head>
@@ -564,6 +651,27 @@
                     </div>
                 </div>
 
+                <!-- Seção de Assinaturas -->
+                <div class="signatures-section">
+                    <h3 style="margin-bottom: 20px; font-size: 1.3rem;">Assinaturas</h3>
+                    <div class="signatures-container">
+                        <div class="signature-box">
+                            <h3>ASSINATURA DO PROJETISTA</h3>
+                            <div class="signature-canvas-container">
+                                <button class="clear-signature-btn" onclick="clearSignature('projetista')">Limpar</button>
+                                <canvas id="signatureProjetista" class="signature-canvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="signature-box">
+                            <h3>ASSINATURA DO CLIENTE</h3>
+                            <div class="signature-canvas-container">
+                                <button class="clear-signature-btn" onclick="clearSignature('cliente')">Limpar</button>
+                                <canvas id="signatureCliente" class="signature-canvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="camera-section">
                     <h3>Fotos Adicionais</h3>
                     <div class="camera-container">
@@ -592,6 +700,101 @@
             checklist: [],
             observacoes: []
         };
+
+        // Configuração das assinaturas
+        const signatures = {
+            projetista: { canvas: null, ctx: null, isDrawing: false, hasSignature: false },
+            cliente: { canvas: null, ctx: null, isDrawing: false, hasSignature: false }
+        };
+
+        // Inicializar canvas de assinatura
+        function initSignatureCanvas() {
+            ['projetista', 'cliente'].forEach(type => {
+                const canvas = document.getElementById(`signature${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                const ctx = canvas.getContext('2d');
+                
+                // Definir tamanho do canvas
+                const container = canvas.parentElement;
+                canvas.width = container.offsetWidth;
+                canvas.height = 250;
+                
+                // Configurar contexto
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                signatures[type].canvas = canvas;
+                signatures[type].ctx = ctx;
+                
+                // Event listeners para mouse
+                canvas.addEventListener('mousedown', (e) => startDrawing(e, type));
+                canvas.addEventListener('mousemove', (e) => draw(e, type));
+                canvas.addEventListener('mouseup', () => stopDrawing(type));
+                canvas.addEventListener('mouseout', () => stopDrawing(type));
+                
+                // Event listeners para touch
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                });
+                
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                });
+                
+                canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    canvas.dispatchEvent(mouseEvent);
+                });
+            });
+        }
+
+        function getMousePos(canvas, e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function startDrawing(e, type) {
+            signatures[type].isDrawing = true;
+            const pos = getMousePos(signatures[type].canvas, e);
+            signatures[type].ctx.beginPath();
+            signatures[type].ctx.moveTo(pos.x, pos.y);
+            signatures[type].hasSignature = true;
+        }
+
+        function draw(e, type) {
+            if (!signatures[type].isDrawing) return;
+            
+            const pos = getMousePos(signatures[type].canvas, e);
+            signatures[type].ctx.lineTo(pos.x, pos.y);
+            signatures[type].ctx.stroke();
+        }
+
+        function stopDrawing(type) {
+            signatures[type].isDrawing = false;
+        }
+
+        function clearSignature(type) {
+            const canvas = signatures[type].canvas;
+            signatures[type].ctx.clearRect(0, 0, canvas.width, canvas.height);
+            signatures[type].hasSignature = false;
+        }
 
         function openTab(tabName) {
             const tabs = document.querySelectorAll('.tab-content');
@@ -728,6 +931,12 @@
                 });
             }
 
+            // Obter assinaturas
+            const signatureProjetista = signatures.projetista.hasSignature ? 
+                signatures.projetista.canvas.toDataURL('image/png') : null;
+            const signatureCliente = signatures.cliente.hasSignature ? 
+                signatures.cliente.canvas.toDataURL('image/png') : null;
+
             // Contador global de fotos para numeração sequencial
             let photoCounter = 0;
 
@@ -849,6 +1058,26 @@
                             </div>
                         ` : ''}
                     </div>
+
+                    ${(signatureProjetista || signatureCliente) ? `
+                        <div class="pdf-section">
+                            <h2>Assinaturas</h2>
+                            <div class="pdf-signatures">
+                                ${signatureProjetista ? `
+                                    <div class="pdf-signature">
+                                        <h3>ASSINATURA DO PROJETISTA</h3>
+                                        <img src="${signatureProjetista}" alt="Assinatura do Projetista">
+                                    </div>
+                                ` : '<div></div>'}
+                                ${signatureCliente ? `
+                                    <div class="pdf-signature">
+                                        <h3>ASSINATURA DO CLIENTE</h3>
+                                        <img src="${signatureCliente}" alt="Assinatura do Cliente">
+                                    </div>
+                                ` : '<div></div>'}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
 
@@ -877,6 +1106,9 @@
             const today = new Date();
             document.getElementById('dataVisita').valueAsDate = today;
             document.getElementById('horaVisita').value = today.toTimeString().slice(0,5);
+            
+            // Inicializar canvas de assinatura
+            initSignatureCanvas();
         };
     </script>
 </body>
